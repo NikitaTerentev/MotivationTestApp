@@ -6,84 +6,95 @@
 //
 
 import UIKit
+import CoreData
+
+//cоздаю массив всех цитат и делаю общедоступным на всякий случай
+var allQuotes = [Quotes]()
+
 
 class TableViewController: UITableViewController {
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-
-        // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
-        // self.navigationItem.rightBarButtonItem = self.editButtonItem
+    var firstLoad = true
+    
+    func nonDeletedQuotes() -> [Quotes] {
+        var nonDeletedAllQuotes = [Quotes]()
+        for quote in allQuotes {
+            if quote.deletedDate == nil {
+                nonDeletedAllQuotes.append(quote)
+            }
+        }
+        
+        return nonDeletedAllQuotes
     }
-
+    
+    override func viewDidLoad() {
+        if (firstLoad) {
+            firstLoad = false
+            //опять получаю контекст
+            let appDelegate = UIApplication.shared.delegate as! AppDelegate
+            let context: NSManagedObjectContext = appDelegate.persistentContainer.viewContext
+            let request = NSFetchRequest<NSFetchRequestResult>(entityName: "Quotes")
+            do {
+                let results: NSArray = try context.fetch(request) as NSArray
+                for result in results {
+                    let quote = result as! Quotes
+                    allQuotes.append(quote)
+                }
+            } catch  {
+                print("Error")
+            }
+            
+        }
+    }
+    
     // MARK: - Table view data source
 
-    override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
-        return 0
-    }
-
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
-        return 0
-    }
-
-    /*
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "reuseIdentifier", for: indexPath)
-
-        // Configure the cell...
-
-        return cell
+        
+        // использую dequeue, чтобы переиспользовать ячейку
+        let newCell = tableView.dequeueReusableCell(withIdentifier: "theCell", for: indexPath) as! Cells
+        
+        let thisQuote: Quotes!
+        thisQuote = nonDeletedQuotes()[indexPath.row]
+        
+        newCell.quoteLabel.text = thisQuote.quote
+        newCell.authorLabel.text = thisQuote.author
+       
+        
+        return newCell
+        
     }
-    */
-
-    /*
-    // Override to support conditional editing of the table view.
-    override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the specified item to be editable.
-        return true
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
+        return nonDeletedQuotes().count
+      
     }
-    */
 
-    /*
-    // Override to support editing the table view.
-    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            // Delete the row from the data source
-            tableView.deleteRows(at: [indexPath], with: .fade)
-        } else if editingStyle == .insert {
-            // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-        }    
+    override func viewDidAppear(_ animated: Bool) {
+        //не уверен в правильности этого действия, но насколько я понимаю операции с обновлением интерфейса нужно делать в освновном потоке, поэтому попробовал реализовать 
+        DispatchQueue.main.async {
+
+            self.tableView.reloadData()
+        }
     }
-    */
-
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        self.performSegue(withIdentifier: "editQuote", sender: self)
     }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        if segue.identifier == "editQuote" {
+            let indexPath = tableView.indexPathForSelectedRow!
+            
+            let quoteDetail = segue.destination as? ViewController
+            
+            let selectedQuote: Quotes!
+            selectedQuote = nonDeletedQuotes()[indexPath.row]
+            quoteDetail!.selectedQuote = selectedQuote
+            
+            tableView.deselectRow(at: indexPath, animated: true)
+        }
     }
-    */
-
 }

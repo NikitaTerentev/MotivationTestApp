@@ -6,10 +6,12 @@
 //
 //
 
-import Foundation
 import CoreData
 
+@objc(Quotes)
 
-public class Entity: NSManagedObject {
-
+class Quotes: NSManagedObject {
+    @NSManaged var quote: String!
+    @NSManaged var author: String!
+    @NSManaged var deletedDate: Date? 
 }
